@@ -225,29 +225,49 @@ void OrthogonalRenderer::drawMapObject(QPainter *painter,
         if (rect.isNull())
             rect = QRectF(QPointF(-10, -10), QSizeF(20, 20));
 
+        // Get the scale
+        const QTransform transform = painter->worldTransform();
+        qreal scale = transform.m22();
+        if(scale < 1) //Limit the scale of the text when zoomed out
+            scale = 1;
+
+        // Set the font size
+        QFont font = painter->font();
+        font.setPointSize(15);
+        painter->setFont(font);
+
+        // Truncate the name to fit width of object
         const QFontMetrics fm = painter->fontMetrics();
         QString name = fm.elidedText(object->name(), Qt::ElideRight,
-                                     rect.width() + 2);
+                                     (rect.width() + 2) * scale);
 
         painter->setRenderHint(QPainter::Antialiasing);
 
-        // Draw the shadow
+        // Draw the shadow rect and text
         QPen pen(Qt::black, 2);
         painter->setPen(pen);
         painter->drawRect(rect.translated(QPointF(1, 1)));
-        if (!name.isEmpty())
-            painter->drawText(QPoint(1, -5 + 1), name);
+        if (!name.isEmpty()) {
+            painter->translate(1, -5 + 1);
+            painter->scale(1 / scale, 1 / scale);
+            painter->drawText(QPoint(0, 0), name);
+            painter->setWorldTransform(transform);
+        }
 
         QColor brushColor = color;
         brushColor.setAlpha(50);
         QBrush brush(brushColor);
 
+        // Draw the rect and text
         pen.setColor(color);
         painter->setPen(pen);
         painter->setBrush(brush);
         painter->drawRect(rect);
-        if (!name.isEmpty())
-            painter->drawText(QPoint(0, -5), name);
+        if (!name.isEmpty()) {
+            painter->translate(0, -5);
+            painter->scale(1 / scale, 1 / scale);
+            painter->drawText(QPoint(0, 0), name);
+        }
     }
 
     painter->restore();
